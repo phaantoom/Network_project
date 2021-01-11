@@ -7,7 +7,7 @@ import ned.IdealChannel;
 network Mesh
 {
     parameters:
-        int n = default(5);
+        int n = default(4);
     submodules:
         nodes[n]: Node ;
     connections: 

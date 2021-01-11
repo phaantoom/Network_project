@@ -1,0 +1,322 @@
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/.
+// 
+
+#include "Node.h"
+#include "MyMessage_m.h"
+#include <fstream>
+//#define EV;
+Define_Module(Node);
+
+
+
+void Node::initialize()
+{
+
+    double interval = exponential(1 / par("lambda").doubleValue());
+//    scheduleAt(simTime() + interval, new cMessage(""));
+
+//    msg_to_send[10]=;
+//    std::string s = "no";
+    window_size = 5;
+    if(getIndex() == 0){
+        send_to = 0;
+        frame_to_send = 0;
+        seq_num=0;
+        std::ifstream MyReadFile("F:/4th Year/4A/Networks/net/src/msg1.txt");
+
+        std::string myText;
+        sendM = new cMessage("send");
+        int i = 0;
+        //            int rand, dest;
+        //            MyReadFile.op
+        if (MyReadFile.is_open())
+        {
+            EV << "opened " <<"\n";
+            int k=0;
+            while(getline (MyReadFile, myText)){
+                  if(i%2 == 0){
+                     msg_to_send[k] = new cMessage(myText.c_str());
+                     msg_to_send[k]->addPar("ack");
+                     msg_to_send[k]->addPar("seq_num");
+                     k++;
+                     EV << "not opened " <<  i <<"\n";
+                  }
+                  i++;
+           }
+           MyReadFile.close();
+           }
+           else{
+               EV << "not opened " <<  myText.c_str() <<"\n";
+              }
+         scheduleAt(simTime() + interval, new cMessage(""));
+    }
+    else if(getIndex() == 1){
+        send_to = getIndex()-1;
+        frame_to_send = 0;
+        seq_num=1;
+        std::ifstream MyReadFile("F:/4th Year/4A/Networks/net/src/msg.txt");
+        std::string myText;
+        int i =0;
+        int k =0;
+        if (MyReadFile.is_open())
+        {
+         while(getline (MyReadFile, myText)){
+             if(i%2 != 0){
+
+                msg_to_send[k] = new cMessage(myText.c_str());
+                msg_to_send[k]->addPar("ack");
+                msg_to_send[k]->addPar("seq_num");
+                k++;
+                EV << "not opened " <<  i <<"\n";
+                }
+             i++;
+         }
+         MyReadFile.close();
+        }
+        else{
+                   EV << "not opened " <<  myText.c_str() <<"\n";
+            }
+       }
+
+    time = 10.0;
+//    timeoutEvent = ;
+    EV << "start timer\n";
+    timeoutEvent = new cMessage("timeoutEvent");
+
+}
+
+void Node::generateMessage()
+{
+//    int i = 0;
+//    cancelEvent(timeoutEvent);
+//    cMessage *msg[10]={"no1","no2","no3","no4","no5","no6","no7","no8","no9","no10"};
+//    EV << "frame_to "<< frame_to_send<< "\n";
+    EV << "gwa generate Message "<< getIndex()<< "\n";
+    int count = 0;
+    count = frame_to_send - first_frame_sent;
+//    EV << "count "<< count << "\n";
+
+//    while(count < window_size && frame_to_send < 10){
+    if(count < window_size && frame_to_send < 5){
+//        EV << "frame_to "<< "\n";
+//        msg_to_send[frame_to_send]->addPar("seq_num");
+        msg_to_send[frame_to_send]->par("seq_num").setLongValue(seq_num);
+
+//        msg_to_send[frame_to_send]->addPar("ack");
+        msg_to_send[frame_to_send]->par("ack").setLongValue(1);
+
+        cMessage *msgee = new cMessage(msg_to_send[frame_to_send]->getName());
+        msgee->addPar("ack");
+        msgee->addPar("seq_num");
+        int ack = msg_to_send[frame_to_send]->par("seq_num").longValue();
+        int seq = msg_to_send[frame_to_send]->par("ack").longValue();
+
+        msgee->par("seq_num").setLongValue(seq);
+        msgee->par("ack").setLongValue(ack);
+        EV << "haat ack "<< msgee->par("ack").longValue() <<" seq_num " << msgee->par("seq_num").longValue() << "\n";
+        frame_to_send++;
+        seq_num++;
+        count++;
+        sendMessage(msgee);
+        if(seq_num >= window_size){
+            seq_num =1;
+        }
+
+//        delete msg;
+
+    }
+    else{
+            cancelEvent(timeoutEvent);
+            cancelEvent(sendM);
+       }
+//    EV << "scheduleAt1 "<< getIndex()<<"\n";
+
+
+//        i++;
+//
+//        if(i == window_size && frame_to_send<fSize){
+//            i = 0;
+//        }
+//        if(ack_frame < window_size){
+//               ack_frame = 0;
+//         }
+
+
+}
+
+
+void Node::sendMessage(cMessage *msg){
+    EV << "haat ack "<< msg->par("ack").longValue() <<" seq_num " << msg->par("seq_num").longValue() << "\n";
+//    EV << "ackkk  "<<msg->par("ack").longValue();
+//    EV << "index2  "<< getIndex() << "seq2 "<<
+//                       msg->par(seq_num).longValue()<< "ack_frame2 "<< ack_frame << "\n";
+
+//    ss << msg->getName();
+    cMessage *msgee = new cMessage(msg->getName());
+    msgee->addPar("ack");
+    msgee->addPar("seq_num");
+    int ack = msg->par("seq_num").longValue();
+    int seq = msg->par("ack").longValue();
+
+    msgee->par("seq_num").setLongValue(seq);
+    msgee->par("ack").setLongValue(ack);
+//    delete msg;
+    send(msgee, "outs", send_to);
+    EV << "gwa send msg "<< "\n";
+}
+
+
+void Node::handleMessage(cMessage *msg)
+{
+    EV << "handle Message "<< "\n";
+
+    if( msg->isSelfMessage() && (strcmp(msg->getName(), "timeoutEvent") == 0)  ){
+        EV << "time out ";
+        generateMessage();
+
+    }
+    else if(msg->isSelfMessage()) { //Host wants to send
+
+//        int rand, dest;
+//        do { //Avoid sending to yourself
+//            rand = uniform(0, gateSize("outs"));
+//        } while(rand == getIndex());
+//        EV << "frame_to_send2 ";
+        //Calculate appropriate gate number
+//        dest = rand;
+//        if (rand > getIndex())
+//            dest--;
+//        send_to = dest;
+//        sendMessage(new cMessage("dummy"));
+//        std::stringstream ss;
+//        ss << rand;
+        EV << " from source " << getIndex() << "\n";
+        //send(msg, "outs", dest);
+//        sendMessage(new cMessage("dummy"));
+//        generateMessage();
+
+//        msg_to_send[frame_to_send]->addPar("seq_num");
+        if(strcmp(msg->getName(), "send") != 0){
+
+//            do { //Avoid sending to yourself
+//                rand = uniform(0, gateSize("outs"));
+//            } while(rand == getIndex());
+//            dest = rand;
+//            if (rand > getIndex())
+//                dest--;
+//            send_to = dest;
+
+            msg_to_send[frame_to_send]->par("seq_num").setLongValue(seq_num);
+
+//        msg_to_send[frame_to_send]->addPar("ack");
+            int ack = 0;
+            msg_to_send[frame_to_send]->par("ack").setLongValue(ack);
+            EV << "gwa iff iff  "<< msg_to_send[frame_to_send]->par("ack").longValue();
+            sendMessage(msg_to_send[frame_to_send]);
+            ack_frame++;
+            frame_to_send++;
+            seq_num++;
+            EV << "scheduleAt1 "<< getIndex()<<"\n";
+            scheduleAt(simTime()+time, timeoutEvent);
+//            double interval = exponential(1 / par("lambda").doubleValue());
+            scheduleAt(simTime() + 2, sendM);
+        }
+        else{
+            generateMessage();
+//            double interval = exponential(1 / par("lambda").doubleValue());
+            scheduleAt(simTime() + 2, sendM);
+        }
+//        double interval = exponential(1 / par("lambda").doubleValue());
+//        EV << ". Scheduled a new packet after " << interval << "s";
+//        scheduleAt(simTime() + interval, new cMessage(""));
+    }
+//    else if(strcmp(msg->getName(), "dummy") == 0){
+//        delete msg;
+//        }
+//    EV << "wrong frame "<< msg->getName()<<"\n";
+
+//    else if(strcmp(msg->getName(), "dummy") == 0){
+//        EV << "zeft "<< "\n";
+//        delete msg;
+//    }
+    else if(msg->par("ack").longValue() == 1){
+//        EV << "seq "<< msg->par(seq_num).longValue() << "\n";
+        EV << "bla bla bla  "<< msg->findPar("seq_num") << "\n";
+
+
+        if(ack_frame == msg->par("seq_num").longValue()){
+            EV << "frame_to_ack2 "<< msg->getName() << "\n";
+            first_frame_sent++;
+            ack_frame++;
+//            cancelEvent(timeoutEvent);
+            generateMessage();
+            if(ack_frame >= window_size){
+                 ack_frame = 1;
+            }
+            bubble("Message received");
+            EV << "gwa ack 1 "<< "\n";
+            cancelEvent(timeoutEvent);
+            EV << "scheduleAt1 "<< getIndex()<<"\n";
+            scheduleAt(simTime()+time, timeoutEvent);
+        }
+        else{
+            EV << "index  "<< getIndex() << "seq "<< msg->par("seq_num").longValue()<< "ack_frame "<< ack_frame << "\n";
+             EV << "wrong frame "<< "\n";
+        }
+    }
+
+    else {
+
+//        EV << "index  "<< getIndex() << "\n";
+//        EV << "first receive "<< msg->par(seq_num).longValue() << "\n";
+//        EV << "first receive "<< ack_frame ;
+        EV << "gwa ack 0 "<< "\n";
+        if(ack_frame == msg->par("seq_num").longValue()){
+            send_to = msg->getArrivalGate()->getIndex();
+            EV << msg->getArrivalGate()->getIndex()<<"hellollo /n";
+            ack_frame++;
+            seq_num = 1;
+
+//            EV << "first receive "<< ack_frame << "\n";
+//            cMessage *ack = new cMessage( "ack");
+//            ack->addPar("ack");
+//            generateMessage();
+//            ack->addPar("flag");
+
+//            ack->par("flag").setBoolValue(true);
+//            ack->par("ack").setLongValue(ack_frame);
+
+            bubble("Message received");
+            generateMessage();
+            scheduleAt(simTime()+time, timeoutEvent);
+//            double interval = exponential(1 / par("lambda").doubleValue());
+//            scheduleAt(simTime() + 2, sendM);
+//            if(getIndex() < msg->)
+//            send_to = getIndex()-1;
+//            send(ack, "outs", send_to);
+
+//            if(ack_frame < window_size){
+//                ack_frame = 0;
+//            }
+//            delete msg;
+        }
+        else{
+//            EV << "ackkk  "<<msg->par("ack").longValue();
+//            EV << "index2  "<< getIndex() << "seq2 "<< msg->par(seq_num).longValue()<< "ack_frame2 "<< ack_frame << "\n";
+            EV << "wrong frame "<< "\n";
+        }
+    }
+}
+

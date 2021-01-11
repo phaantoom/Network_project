@@ -22,7 +22,7 @@
 #include <math.h>
 #include <stdio.h>
 #include<sstream>
-
+#include<string>
 using namespace omnetpp;
 
 /**
@@ -31,10 +31,36 @@ using namespace omnetpp;
 class Node : public cSimpleModule
 {
   protected:
+    simtime_t time; //// time of waiting.
+    int window_size = 0; /// window size for sender.
+    int frame_to_send = 0; //// f(n) last frame to send.
+    int first_frame_sent = 0; ///// f(0) frame sent waits to ack.
+    int ack_frame = 0; ///// frame receiver waits
+    int send_to;
+    int fSize;
+    int seq_num =0;
+    cMessage *timeoutEvent;
+    cMessage *msg_to_send[10];
+
+    int no_frames; //number of total frames
+    int drop_fram; // number of the dropped frames.
+    int ret_frames; //number of retransmitted frames.
+    int no_ack; //number of ack.
+
+    int msg_size;
+    cMessage* sendM;
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-    virtual int getParityValue(int position, int totalSize,int hammingCode[100]);
-    virtual std::string hamming_code(std::vector<int>vec, int n);
+    virtual void generateMessage(bool retransmit, int ack);
+    virtual void sendMessage(cMessage *);
+    virtual cMessage* receiveFrame(cMessage *);
+    virtual cMessage* sendFrame(cMessage *);
+    virtual std::string hamming_code(std::string bits, int vecSize);
+    std::string corruption(std::string msgBits);
+    bool probability(float threshold);
+    virtual float calcStat();
+    virtual std::string  removehamming(std::string msg);
+
 };
 
 #endif
